@@ -1,17 +1,17 @@
 import { logger } from '@src/utils/index.js';
 
 import type { Prisma, PrismaClient, User } from '@prisma/client';
-import type { IUserRepository, CreateUserPayload, UpdateUserPayload } from '@src/types/repositories/index.js';
+import * as T from '@src/types/repositories/index.js';
 import type { ResultTuple, ILogger } from '@src/types/shared/index.js';
 
-export class UserRepository implements IUserRepository {
+export class UserRepository implements T.IUserRepository {
   constructor(
     private readonly prisma: PrismaClient,
     private readonly logger_service: ILogger = logger
   ) { }
 
   async create(
-    payload: CreateUserPayload,
+    payload: T.CreateUserPayload,
     options?: { transaction?: Prisma.TransactionClient }
   ): Promise<ResultTuple<User>> {
     const client = options?.transaction ?? this.prisma;
@@ -89,7 +89,7 @@ export class UserRepository implements IUserRepository {
   }
 
   async update(
-    params: { user_id: string; payload: UpdateUserPayload },
+    params: { user_id: string; payload: T.UpdateUserPayload },
     options?: { transaction?: Prisma.TransactionClient }
   ): Promise<ResultTuple<User>> {
     const client = options?.transaction ?? this.prisma;
