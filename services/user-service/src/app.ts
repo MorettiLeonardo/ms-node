@@ -10,7 +10,8 @@ export class App {
 
   constructor(
     private readonly health_router: Router,
-    private readonly user_router: Router
+    private readonly user_router: Router,
+    private readonly docs_router?: Router
   ) {
     this.app = express();
     this.setup_middlewares();
@@ -19,7 +20,11 @@ export class App {
   }
 
   private setup_middlewares(): void {
-    this.app.use(helmet());
+    this.app.use(
+      helmet({
+        contentSecurityPolicy: false
+      })
+    );
     this.app.use(
       cors({
         origin: env.CORS_ORIGIN,
@@ -34,6 +39,11 @@ export class App {
   private setup_routes(): void {
     this.app.use('/health', this.health_router);
     this.app.use('/api/v1/users', this.user_router);
+
+    if (this.docs_router) {
+      this.app.use('/docs', this.docs_router);
+      this.app.use('/api-docs', this.docs_router);
+    }
   }
 
   private setup_error_handling(): void {

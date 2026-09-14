@@ -4,7 +4,7 @@ import { UserRepository } from '@src/repositories/index.js';
 import { UserService } from '@src/services/index.js';
 import { UserController, HealthController } from '@src/controllers/index.js';
 import { UserMiddleware } from '@src/middlewares/index.js';
-import { UserRouter, HealthRouter } from '@src/routes/index.js';
+import { UserRouter, HealthRouter, DocsRouter } from '@src/routes/index.js';
 import { App } from '@src/app.js';
 
 export class Server {
@@ -23,8 +23,9 @@ export class Server {
 
       const user_router = new UserRouter(user_controller, user_middleware);
       const health_router = new HealthRouter(health_controller);
+      const docs_router = new DocsRouter();
 
-      const application = new App(health_router.router, user_router.router);
+      const application = new App(health_router.router, user_router.router, docs_router.router);
 
       this.http_server = application.app.listen(env.PORT, () => {
         process.stdout.write(`User Service running on port ${env.PORT}\n`);

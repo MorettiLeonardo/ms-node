@@ -149,16 +149,23 @@ Base URL: `http://localhost:3000`
 
 ---
 
-## 📖 API Documentation (Bruno Collection)
+## 📖 API Documentation (Swagger & Bruno)
 
-All HTTP endpoints are documented and ready for execution with [Bruno](https://www.usebruno.com/) under the [`docs/`](file:///c:/Users/Usuario/learns-ms/docs) directory:
+All HTTP endpoints are documented and ready for execution and exploration:
 
-- **Collection Root**: `docs/` (contains `bruno.json`)
+### 🌐 Swagger UI (Interactive Browser Documentation)
+
+Each microservice serves interactive Swagger documentation:
+
+- **Swagger UI**: [http://localhost:3000/docs](http://localhost:3000/docs) (or `/api-docs`)
+- **OpenAPI 3.0 JSON**: [http://localhost:3000/docs/swagger.json](http://localhost:3000/docs/swagger.json)
+
+### 📁 Bruno Collections & OpenAPI Specs (`docs/`)
+
+Organized under [`docs/`](file:///c:/Users/Usuario/learns-ms/docs) by microservice:
+- **Bruno Collection**: `docs/` (open as collection in [Bruno](https://www.usebruno.com/))
+- **OpenAPI Specs**: [`docs/user-service/swagger.yaml`](file:///c:/Users/Usuario/learns-ms/docs/user-service/swagger.yaml) and [`docs/user-service/swagger.json`](file:///c:/Users/Usuario/learns-ms/docs/user-service/swagger.json)
 - **Environments**: `docs/environments/local.bru` (`http://localhost:3000`) and `production.bru`
-- **Organized per Microservice**:
-  - `docs/user-service/health/` (Health check endpoint)
-  - `docs/user-service/users/` (CRUD operations)
-- **Auto Variable Capture**: Running `Create User` automatically sets `{{user_id}}` so subsequent `Get by ID`, `Update`, and `Delete` requests work seamlessly.
 
 ---
 
