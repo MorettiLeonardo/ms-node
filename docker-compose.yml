@@ -1,0 +1,72 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: learns-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword
+      POSTGRES_DB: learns_user_db
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d learns_user_db']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - learns-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: learns-redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - learns-network
+
+  user-service:
+    build:
+      context: ./services/user-service
+      dockerfile: Dockerfile
+      target: development
+    container_name: learns-user-service
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DATABASE_URL: postgresql://postgres:postgrespassword@postgres:5432/learns_user_db?schema=public
+      REDIS_URL: redis://redis:6379
+      REDIS_CACHE_TTL_SECONDS: 300
+      CORS_ORIGIN: '*'
+    volumes:
+      - ./services/user-service/src:/app/src
+      - ./services/user-service/prisma:/app/prisma
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: sh -c "npx prisma db push && npm run dev"
+    networks:
+      - learns-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  learns-network:
+    driver: bridge
