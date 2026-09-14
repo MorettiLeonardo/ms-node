@@ -3,6 +3,7 @@ import { env } from '@src/config/env.js';
 import { DEFAULT_CACHE_TTL_SECONDS } from '@src/constants/index.js';
 import type { ICacheService } from '@src/types/cache/index.js';
 import type { ResultTuple } from '@src/types/shared/index.js';
+import { logger } from '@src/utils/index.js';
 
 export const redis = new Redis(env.REDIS_URL, {
   maxRetriesPerRequest: 3,
@@ -20,7 +21,7 @@ export class RedisCacheService implements ICacheService {
     try {
       await this.client.connect();
     } catch (error) {
-      process.stderr.write(`Failed to establish Redis connection: ${String(error)}\n`);
+      logger.error('Failed to establish Redis connection', { error });
     }
   }
 
@@ -28,7 +29,7 @@ export class RedisCacheService implements ICacheService {
     try {
       await this.client.quit();
     } catch (error) {
-      process.stderr.write(`Error during Redis disconnection: ${String(error)}\n`);
+      logger.error('Error during Redis disconnection', { error });
     }
   }
 

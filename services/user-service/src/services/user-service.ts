@@ -1,6 +1,7 @@
-import type { PrismaClient, User } from '@prisma/client';
 import { AppError } from '@src/errors/index.js';
 import { USER_CACHE_PREFIX, DEFAULT_PAGE, DEFAULT_LIMIT } from '@src/constants/index.js';
+
+import type { PrismaClient, User } from '@prisma/client';
 import type { IUserRepository } from '@src/types/repositories/index.js';
 import type { ICacheService } from '@src/types/cache/index.js';
 import type {
@@ -12,17 +13,21 @@ import type {
   UserResponse,
   PaginatedUsersResponse
 } from '@src/types/services/index.js';
-import type { ResultTuple } from '@src/types/shared/index.js';
+import { logger } from '@src/utils/index.js';
+import type { ResultTuple, ILogger } from '@src/types/shared/index.js';
 
 export class UserService implements IUserService {
   constructor(
     private readonly prisma: PrismaClient,
     private readonly user_repository: IUserRepository,
-    private readonly cache_service: ICacheService
-  ) {}
+    private readonly cache_service: ICacheService,
+    private readonly logger_service: ILogger = logger
+  ) { }
 
   async create(params: CreateUserParams): Promise<ResultTuple<User>> {
     try {
+      this.logger_service.info('init', { method: 'create', params });
+
       const user = await this.prisma.$transaction(async (tx) => {
         const payload = {
           email: params.email,
@@ -42,76 +47,102 @@ export class UserService implements IUserService {
       const result: ResultTuple<User> = [user, null];
       return result;
     } catch (error) {
+      this.logger_service.error('error', { method: 'create', error, params });
       const result: ResultTuple<User> = [null, error as Error];
       return result;
+    } finally {
+      this.logger_service.info('finish', { method: 'create' });
     }
   }
 
   async findOne(params: FindOneUserParams): Promise<ResultTuple<UserResponse>> {
-    const cache_key = `${USER_CACHE_PREFIX}${params.user_id}`;
-    const [cached_user, err_cached] = await this.cache_service.get<User>(cache_key);
+    try {
+      this.logger_service.info('init', { method: 'findOne', params });
 
-    if (cached_user && !err_cached) {
-      const result: ResultTuple<UserResponse> = [{ user: cached_user, is_from_cache: true }, null];
+      const cache_key = `${USER_CACHE_PREFIX}${params.user_id}`;
+      const [cached_user, err_cached] = await this.cache_service.get<User>(cache_key);
+
+      if (cached_user && !err_cached) {
+        this.logger_service.debug('User retrieved from cache', { user_id: params.user_id });
+        const result: ResultTuple<UserResponse> = [{ user: cached_user, is_from_cache: true }, null];
+        return result;
+      }
+
+      const [db_user, err_db] = await this.user_repository.findById({ user_id: params.user_id });
+
+      if (err_db) {
+        throw err_db;
+      }
+
+      if (!db_user) {
+        const result: ResultTuple<UserResponse> = [
+          null,
+          new AppError(404, `User with ID "${params.user_id}" not found`)
+        ];
+        return result;
+      }
+
+      await this.cache_service.set(cache_key, db_user);
+
+      const result: ResultTuple<UserResponse> = [{ user: db_user, is_from_cache: false }, null];
       return result;
-    }
-
-    const [db_user, err_db] = await this.user_repository.findById({ user_id: params.user_id });
-
-    if (err_db) {
-      const result: ResultTuple<UserResponse> = [null, err_db];
+    } catch (error) {
+      this.logger_service.error('error', { method: 'findOne', error, params });
+      const result: ResultTuple<UserResponse> = [null, error as Error];
       return result;
+    } finally {
+      this.logger_service.info('finish', { method: 'findOne' });
     }
-
-    if (!db_user) {
-      const result: ResultTuple<UserResponse> = [null, new AppError(404, `User with ID "${params.user_id}" not found`)];
-      return result;
-    }
-
-    await this.cache_service.set(cache_key, db_user);
-
-    const result: ResultTuple<UserResponse> = [{ user: db_user, is_from_cache: false }, null];
-    return result;
   }
 
   async findAll(params: FindAllUsersParams): Promise<ResultTuple<PaginatedUsersResponse>> {
-    let page_number = DEFAULT_PAGE;
-    if (params.page) {
-      page_number = params.page;
-    }
+    try {
+      this.logger_service.info('init', { method: 'findAll', params });
 
-    let limit_number = DEFAULT_LIMIT;
-    if (params.limit) {
-      limit_number = params.limit;
-    }
+      let page_number = DEFAULT_PAGE;
+      if (params.page) {
+        page_number = params.page;
+      }
 
-    const skip = (page_number - 1) * limit_number;
+      let limit_number = DEFAULT_LIMIT;
+      if (params.limit) {
+        limit_number = params.limit;
+      }
 
-    const [users, err_users] = await this.user_repository.findMany({ skip, take: limit_number });
-    if (err_users) {
-      const result: ResultTuple<PaginatedUsersResponse> = [null, err_users];
+      const skip = (page_number - 1) * limit_number;
+
+      const [users, err_users] = await this.user_repository.findMany({ skip, take: limit_number });
+      if (err_users) {
+        throw err_users;
+      }
+
+      const [total, err_total] = await this.user_repository.count();
+      if (err_total) {
+        throw err_total;
+      }
+
+      const paginated_data: PaginatedUsersResponse = {
+        users: users ?? [],
+        total: total ?? 0,
+        page: page_number,
+        limit: limit_number
+      };
+
+      const result: ResultTuple<PaginatedUsersResponse> = [paginated_data, null];
       return result;
-    }
-
-    const [total, err_total] = await this.user_repository.count();
-    if (err_total) {
-      const result: ResultTuple<PaginatedUsersResponse> = [null, err_total];
+    } catch (error) {
+      this.logger_service.error('error', { method: 'findAll', error, params });
+      const result: ResultTuple<PaginatedUsersResponse> = [null, error as Error];
       return result;
+    } finally {
+      this.logger_service.info('finish', { method: 'findAll' });
     }
-
-    const paginated_data: PaginatedUsersResponse = {
-      users: users ?? [],
-      total: total ?? 0,
-      page: page_number,
-      limit: limit_number
-    };
-
-    const result: ResultTuple<PaginatedUsersResponse> = [paginated_data, null];
-    return result;
   }
 
   async update(params: UpdateUserParams): Promise<ResultTuple<User>> {
     try {
+      this.logger_service.info('init', { method: 'update', params });
+
       const user = await this.prisma.$transaction(async (tx) => {
         const payload = {
           email: params.email,
@@ -134,13 +165,18 @@ export class UserService implements IUserService {
       const result: ResultTuple<User> = [user, null];
       return result;
     } catch (error) {
+      this.logger_service.error('error', { method: 'update', error, params });
       const result: ResultTuple<User> = [null, error as Error];
       return result;
+    } finally {
+      this.logger_service.info('finish', { method: 'update' });
     }
   }
 
   async remove(params: FindOneUserParams): Promise<ResultTuple<boolean>> {
     try {
+      this.logger_service.info('init', { method: 'remove', params });
+
       await this.prisma.$transaction(async (tx) => {
         const [, error] = await this.user_repository.delete({ user_id: params.user_id }, { transaction: tx });
         if (error) {
@@ -154,8 +190,11 @@ export class UserService implements IUserService {
       const result: ResultTuple<boolean> = [true, null];
       return result;
     } catch (error) {
+      this.logger_service.error('error', { method: 'remove', error, params });
       const result: ResultTuple<boolean> = [null, error as Error];
       return result;
+    } finally {
+      this.logger_service.info('finish', { method: 'remove' });
     }
   }
 }
