@@ -1,0 +1,16 @@
+meta {
+  name: List Users
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{user_service_url}}/api/v1/users
+  body: none
+  auth: none
+}
+
+params:query {
+  page: 1
+  limit: 10
+}

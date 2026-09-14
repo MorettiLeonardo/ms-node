@@ -55,6 +55,10 @@ Each microservice is designed with strict separation of concerns and dependency 
 learns-ms/
 ├── .agents/
 │   └── rules/                      # Architectural, Clean Code & Style rules
+├── docs/                           # Bruno API Collections organized per microservice
+│   ├── environments/               # Environment configs (local, production)
+│   ├── user-service/               # User Service endpoints (.bru)
+│   └── bruno.json                  # Bruno collection descriptor
 ├── docker-compose.yml              # Container orchestration (PostgreSQL, Redis, Services)
 ├── services/
 │   └── user-service/               # User Microservice
@@ -142,6 +146,19 @@ Base URL: `http://localhost:3000`
   "role": "LEAD_ENGINEER"
 }
 ```
+
+---
+
+## 📖 API Documentation (Bruno Collection)
+
+All HTTP endpoints are documented and ready for execution with [Bruno](https://www.usebruno.com/) under the [`docs/`](file:///c:/Users/Usuario/learns-ms/docs) directory:
+
+- **Collection Root**: `docs/` (contains `bruno.json`)
+- **Environments**: `docs/environments/local.bru` (`http://localhost:3000`) and `production.bru`
+- **Organized per Microservice**:
+  - `docs/user-service/health/` (Health check endpoint)
+  - `docs/user-service/users/` (CRUD operations)
+- **Auto Variable Capture**: Running `Create User` automatically sets `{{user_id}}` so subsequent `Get by ID`, `Update`, and `Delete` requests work seamlessly.
 
 ---
 
