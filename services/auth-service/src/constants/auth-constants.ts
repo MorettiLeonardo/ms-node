@@ -1,0 +1,6 @@
+export const DEFAULT_PORT = 3001;
+export const DEFAULT_JWT_EXPIRES_IN = '15m';
+export const DEFAULT_REFRESH_TOKEN_EXPIRES_DAYS = 7;
+export const BCRYPT_SALT_ROUNDS = 10;
+export const DEFAULT_ROLE = 'USER';
+export const ACCESS_TOKEN_EXPIRES_IN_SECONDS = 900;

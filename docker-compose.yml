@@ -63,9 +63,58 @@ services:
     networks:
       - learns-network
 
+  auth-service:
+    build:
+      context: ./services/auth-service
+      dockerfile: Dockerfile
+      target: development
+    container_name: learns-auth-service
+    restart: unless-stopped
+    ports:
+      - '3001:3001'
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      DATABASE_URL: mysql://auth_user:auth_password@mysql:3306/learns_auth_db
+      JWT_SECRET: dev_jwt_super_secret_key_change_in_production_12345
+      JWT_EXPIRES_IN: 15m
+      REFRESH_TOKEN_EXPIRES_IN: 7d
+      CORS_ORIGIN: '*'
+    volumes:
+      - ./services/auth-service/src:/app/src
+      - ./services/auth-service/prisma:/app/prisma
+    depends_on:
+      mysql:
+        condition: service_healthy
+    command: sh -c "npx prisma db push && npm run dev"
+    networks:
+      - learns-network
+
+  mysql:
+    image: mysql:8.0
+    container_name: learns-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: mysqlrootpassword
+      MYSQL_DATABASE: learns_auth_db
+      MYSQL_USER: auth_user
+      MYSQL_PASSWORD: auth_password
+    ports:
+      - '3306:3306'
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost', '-u', 'auth_user', '-pauth_password']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - learns-network
+
 volumes:
   postgres_data:
   redis_data:
+  mysql_data:
 
 networks:
   learns-network:

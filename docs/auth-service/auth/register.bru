@@ -1,0 +1,28 @@
+meta {
+  name: Register Account
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{auth_service_url}}/register
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "user@example.com",
+    "password": "Password123!",
+    "role": "user"
+  }
+}
+
+vars:post-response {
+  access_token: res.body.data.tokens.access_token
+  refresh_token: res.body.data.tokens.refresh_token
+}

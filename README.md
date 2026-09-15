@@ -1,6 +1,6 @@
 # Node.js TypeScript Microservices Platform
 
-A modular, production-ready microservices architecture built with **Node.js**, **TypeScript**, **Docker**, **Prisma ORM (PostgreSQL)**, and **Redis Cache**, adhering to **Clean Architecture**, **Repository Pattern**, and strict project quality standards with **Oxlint** and **Prettier**.
+A modular, production-ready microservices architecture built with **Node.js**, **TypeScript**, **Docker**, **Prisma ORM**, **Express (PostgreSQL & Redis)**, and **Fastify (MySQL & JWT)**, adhering to **Clean Architecture**, **Repository Pattern**, and strict project quality standards with **Oxlint** and **Prettier**.
 
 ---
 
@@ -14,11 +14,11 @@ Each microservice is designed with strict separation of concerns and dependency 
                   └──────┬───────┘
                          ▼
         ┌──────────────────────────────────┐
-        │ Schema Layer (Input Validation)  │  1st: Validate shape, params & payload
+        │ Schema Layer (Input Validation)  │  1st: Validate shape, params & payload (Zod)
         └────────────────┬─────────────────┘
                          ▼
         ┌──────────────────────────────────┐
-        │ Middleware Layer (DB/ACL Checks) │  2nd: Existence & uniqueness checks
+        │ Middleware Layer (DB/ACL Checks) │  2nd: Existence, JWT verification & uniqueness
         └────────────────┬─────────────────┘
                          ▼
         ┌──────────────────────────────────┐
@@ -26,25 +26,25 @@ Each microservice is designed with strict separation of concerns and dependency 
         └────────────────┬─────────────────┘
                          ▼
         ┌──────────────────────────────────┐
-        │ Service Layer (Business Logic)   │  Transactions, Cache-Aside & orchestration
+        │ Service Layer (Business Logic)   │  Transactions, tokens, caching & orchestration
         └────────┬────────────────┬────────┘
                  ▼                ▼
         ┌────────────────┐ ┌──────────────┐
         │ Cache (Redis)  │ │  Repository  │  Direct database access via Prisma
         └────────────────┘ └──────┬───────┘
                                   ▼
-                           ┌──────────────┐
-                           │  PostgreSQL  │
-                           └──────────────┘
+                    ┌───────────────────────────┐
+                    │ PostgreSQL / MySQL (Docker)│
+                    └───────────────────────────┘
 ```
 
 ### Layer Standards
-- **Schema (`src/schemas/`)**: Input validation only. Always the first middleware in the route chain.
-- **Middleware (`src/middlewares/`)**: Database existence/uniqueness checks, ACL, logging, and error handling.
-- **Controller (`src/controllers/`)**: Dispatches request to the service layer and formats HTTP response. Contains zero business logic or validation.
-- **Service (`src/services/`)**: Core business logic, cache coordination, and transactional write operations.
-- **Repository (`src/repositories/`)**: Direct database interaction via Prisma, returning `[data, error]` result tuples.
-- **Types (`src/types/`)**: Centralized TypeScript definitions organized by layer (`types/{repositories,services,controllers,cache,shared}/`).
+- **Schema (`src/schemas/`)**: Input validation only. Always the first step in the route chain (`preValidation` in Fastify).
+- **Middleware (`src/middlewares/`)**: Database existence/uniqueness checks, ACL, JWT verification (`preHandler` in Fastify).
+- **Controller (`src/controllers/`)**: Dispatches request to the service layer and formats HTTP response. Contains zero business logic or validation. Every method implements `try ... catch ... finally` with `init`, `error`, and `finish` logs.
+- **Service (`src/services/`)**: Core business logic, token generation, and transactional write operations. Every method implements `try ... catch ... finally` with `init`, `error`, and `finish` logs.
+- **Repository (`src/repositories/`)**: Direct database interaction via Prisma, returning `[data, error]` result tuples. Every method implements `try ... catch ... finally` with `init`, `error`, and `finish` logs.
+- **Types (`src/types/`)**: Centralized TypeScript definitions organized by layer (`types/{repositories,services,controllers,shared}/`).
 - **Path Aliases**: All imports utilize the absolute `@src/*` alias.
 
 ---
@@ -55,33 +55,21 @@ Each microservice is designed with strict separation of concerns and dependency 
 learns-ms/
 ├── .agents/
 │   └── rules/                      # Architectural, Clean Code & Style rules
-├── docs/                           # Bruno API Collections organized per microservice
+├── docs/                           # Bruno API Collections & OpenAPI specs per microservice
 │   ├── environments/               # Environment configs (local, production)
-│   ├── user-service/               # User Service endpoints (.bru)
+│   ├── user-service/               # User Service endpoints (.bru, swagger.json, swagger.yaml)
+│   ├── auth-service/               # Auth Service endpoints (.bru, swagger.json, swagger.yaml)
 │   └── bruno.json                  # Bruno collection descriptor
-├── docker-compose.yml              # Container orchestration (PostgreSQL, Redis, Services)
+├── docker-compose.yml              # Multi-container orchestration (Postgres, Redis, MySQL, Services)
 ├── services/
-│   └── user-service/               # User Microservice
-│       ├── prisma/
-│       │   └── schema.prisma       # Prisma ORM schema (PostgreSQL provider)
-│       ├── src/
-│       │   ├── config/             # Environment, Prisma & Redis singletons
-│       │   ├── constants/          # Application & cache constants
-│       │   ├── controllers/        # Express controllers (PascalCase class, kebab-case file)
-│       │   ├── errors/             # Custom domain errors (AppError)
-│       │   ├── middlewares/        # Error, logging & validation middlewares
-│       │   ├── repositories/       # Prisma repository implementations
-│       │   ├── routes/             # Express routes with strict layer order
-│       │   ├── schemas/            # Request validation schemas & middleware
-│       │   ├── services/           # Business logic with transactions & caching
-│       │   ├── types/              # Cross-layer TypeScript interfaces & tuples
-│       │   ├── app.ts              # Express App configuration class
-│       │   └── index.ts            # Server bootstrap class & graceful shutdown
-│       ├── Dockerfile              # Multi-stage Docker build (dev / prod)
-│       ├── .oxlintrc.json          # Oxlint configuration
-│       ├── .prettierrc             # Prettier configuration (trailingComma: none, printWidth: 120)
-│       ├── tsconfig.json           # TypeScript configuration with @src/* path alias
-│       └── package.json
+│   ├── user-service/               # User Microservice (Express + TypeScript + Postgres + Redis)
+│   │   ├── prisma/schema.prisma    # PostgreSQL Prisma schema
+│   │   ├── src/                    # Layers (schemas, middlewares, controllers, services, repositories)
+│   │   └── Dockerfile
+│   └── auth-service/               # Auth Microservice (Fastify + TypeScript + MySQL + JWT)
+│       ├── prisma/schema.prisma    # MySQL Prisma schema (Account, RefreshToken)
+│       ├── src/                    # Layers (schemas, middlewares, controllers, services, repositories)
+│       └── Dockerfile
 ├── .gitignore
 └── README.md
 ```
@@ -90,7 +78,7 @@ learns-ms/
 
 ## 🚀 Quick Start (Docker Compose)
 
-Start the entire ecosystem (PostgreSQL 16, Redis 7, and User Service):
+Start the entire microservices ecosystem (PostgreSQL 16, Redis 7, MySQL 8, User Service, Auth Service):
 
 ```bash
 docker compose up --build -d
@@ -103,7 +91,11 @@ docker compose ps
 
 Stream logs:
 ```bash
-docker compose logs -f user-service
+# View logs from auth service
+docker compose logs -f auth-service
+
+# View logs from all services
+docker compose logs -f
 ```
 
 Stop the stack:
@@ -113,39 +105,40 @@ docker compose down
 
 ---
 
-## 📡 API Endpoints (`user-service`)
+## 📡 Microservices Overview
 
-Base URL: `http://localhost:3000`
+### 1. User Microservice (`user-service`)
+- **Port**: `3000`
+- **Framework**: Express.js with TypeScript
+- **Database**: PostgreSQL 16 (via Prisma ORM)
+- **Cache**: Redis 7 (Cache-Aside pattern)
+- **Swagger UI**: [http://localhost:3000/docs](http://localhost:3000/docs)
 
-### CRUD Standard Naming & Status Codes
+| Operation | Method | Endpoint | Description |
+|---|---|---|---|
+| Health Check | `GET` | `/health` | PostgreSQL and Redis health verification |
+| Create User | `POST` | `/api/v1/users` | Creates user in DB and warms cache |
+| List Users | `GET` | `/api/v1/users` | Paginated users list (`?page=1&limit=10`) |
+| Get User | `GET` | `/api/v1/users/:id` | Cache-aside lookup |
+| Update User | `PUT` | `/api/v1/users/:id` | Transactional update with cache sync |
+| Delete User | `DELETE` | `/api/v1/users/:id` | Deletes user from DB and invalidates cache |
 
-| Operation | HTTP Method | Endpoint | Status Code | Description |
+### 2. Authentication Microservice (`auth-service`)
+- **Port**: `3001`
+- **Framework**: Fastify 5.x with TypeScript
+- **Database**: MySQL 8.0 (via Prisma ORM)
+- **Security**: Fastify JWT, Bcrypt password hashing, rotating refresh tokens (crypto SHA-256)
+- **Swagger UI**: [http://localhost:3001/docs](http://localhost:3001/docs)
+- **OpenAPI JSON**: [http://localhost:3001/docs/json](http://localhost:3001/docs/json)
+
+| Operation | Method | Endpoint | Auth | Description |
 |---|---|---|---|---|
-| Health Check | `GET` | `/health` | `200` | Verifies PostgreSQL and Redis connectivity |
-| Create | `POST` | `/api/v1/users` | `201` | Creates user in DB and warms Redis cache |
-| Read All | `GET` | `/api/v1/users` | `200` | Retrieves paginated users list (`?page=1&limit=10`) |
-| Read One | `GET` | `/api/v1/users/:id` | `200` | Cache-aside lookup (returns `fromCache: true` on hit) |
-| Update | `PUT` | `/api/v1/users/:id` | `200` | Transactional update with cache synchronization |
-| Delete | `DELETE` | `/api/v1/users/:id` | `204` | Deletes user from DB and invalidates cache |
-
-### Example Request Payloads
-
-#### Create User (`POST /api/v1/users`)
-```json
-{
-  "email": "developer@example.com",
-  "name": "Jane Doe",
-  "role": "ENGINEER"
-}
-```
-
-#### Update User (`PUT /api/v1/users/:id`)
-```json
-{
-  "name": "Jane W. Doe",
-  "role": "LEAD_ENGINEER"
-}
-```
+| Health Check | `GET` | `/health` | None | Service uptime and status check |
+| Register | `POST` | `/register` | None | Creates account with hashed password, issues JWT and refresh token |
+| Login | `POST` | `/login` | None | Authenticates credentials, issues new JWT and refresh token |
+| Refresh Token | `POST` | `/refresh` | None | Validates active refresh token, revokes it, and issues new rotated pair |
+| Profile (Me) | `GET` | `/me` | Bearer JWT | Returns current authenticated account profile |
+| Logout | `POST` | `/logout` | Bearer JWT | Revokes active refresh token or all user refresh tokens |
 
 ---
 
@@ -155,39 +148,43 @@ All HTTP endpoints are documented and ready for execution and exploration:
 
 ### 🌐 Swagger UI (Interactive Browser Documentation)
 
-Each microservice serves interactive Swagger documentation:
-
-- **Swagger UI**: [http://localhost:3000/docs](http://localhost:3000/docs) (or `/api-docs`)
-- **OpenAPI 3.0 JSON**: [http://localhost:3000/docs/swagger.json](http://localhost:3000/docs/swagger.json)
+- **User Service Docs**: [http://localhost:3000/docs](http://localhost:3000/docs)
+- **Auth Service Docs**: [http://localhost:3001/docs](http://localhost:3001/docs)
 
 ### 📁 Bruno Collections & OpenAPI Specs (`docs/`)
 
 Organized under [`docs/`](file:///c:/Users/Usuario/learns-ms/docs) by microservice:
-- **Bruno Collection**: `docs/` (open as collection in [Bruno](https://www.usebruno.com/))
-- **OpenAPI Specs**: [`docs/user-service/swagger.yaml`](file:///c:/Users/Usuario/learns-ms/docs/user-service/swagger.yaml) and [`docs/user-service/swagger.json`](file:///c:/Users/Usuario/learns-ms/docs/user-service/swagger.json)
-- **Environments**: `docs/environments/local.bru` (`http://localhost:3000`) and `production.bru`
+- **Bruno Collection**: Open `docs/` in [Bruno](https://www.usebruno.com/)
+- **Environments**: Select `local` (`http://localhost:3000` and `http://localhost:3001`)
+- **OpenAPI Specs**:
+  - `docs/user-service/swagger.json` and `docs/user-service/swagger.yaml`
+  - `docs/auth-service/swagger.json` and `docs/auth-service/swagger.yaml`
 
 ---
 
 ## 🛠️ Code Quality & Tooling
 
-Inside `services/user-service`:
+Inside `services/auth-service` (and `services/user-service`):
 
 | Command | Tool | Purpose |
 |---|---|---|
-| `npm run lint` | **Oxlint** | High-speed Rust-based linter for static analysis |
+| `npm run lint` | **Oxlint** | High-speed Rust-based linter for static analysis (0 warnings, 0 errors) |
 | `npm run format` | **Prettier** | Code formatting adhering to workspace rules |
 | `npm run format:check` | **Prettier** | Verifies format consistency |
 | `npm run typecheck` | **TypeScript** | Strict compile-time type verification (`tsc --noEmit`) |
 | `npm run build` | **tsc + tsc-alias** | Compiles TypeScript and resolves `@src/*` aliases into `dist/` |
-| `npm run dev` | **tsx** | Live development server with hot module reloading |
+| `npm run dev` | **tsx** | Live development server with hot reloading |
+| `npm run prisma:generate`| **Prisma** | Generates typed Prisma client |
+| `npm run prisma:push` | **Prisma** | Synchronizes schema with database |
 
 ---
 
 ## ➕ Adding a New Microservice
 
-To add another microservice (e.g. `services/product-service`):
-1. Copy the structure from `services/user-service` to `services/<new-service>`.
+To add another microservice (e.g. `services/order-service`):
+1. Create `services/<new-service>`.
 2. Define the service domain models in `prisma/schema.prisma`.
-3. Implement the `Repository`, `Service`, `Schema`, `Controller`, and `Router` classes.
-4. Add the service definition to root `docker-compose.yml` joined to the `learns-network`.
+3. Implement `Repository`, `Service`, `Schema`, `Controller`, and `Router` classes.
+4. Ensure every function follows `try ... catch ... finally` with `init`, `error`, and `finish` logs.
+5. Add the service and database containers to `docker-compose.yml` joined to `learns-network`.
+6. Add Bruno requests and Swagger specs to `docs/<new-service>/`.
