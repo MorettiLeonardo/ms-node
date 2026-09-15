@@ -53,6 +53,7 @@
     },
     "/api/v1/users": {
       "post": {
+        "security": [{ "bearerAuth": [] }],
         "tags": ["Users"],
         "summary": "Create user",
         "description": "Creates a new user record in PostgreSQL and warms the Redis cache",
@@ -100,6 +101,7 @@
         }
       },
       "get": {
+        "security": [{ "bearerAuth": [] }],
         "tags": ["Users"],
         "summary": "List users",
         "description": "Retrieves a paginated list of users",
@@ -144,6 +146,7 @@
     },
     "/api/v1/users/{id}": {
       "get": {
+        "security": [{ "bearerAuth": [] }],
         "tags": ["Users"],
         "summary": "Get user by ID",
         "description": "Cache-aside lookup. Returns from Redis cache if available, otherwise queries PostgreSQL",
@@ -184,6 +187,7 @@
         }
       },
       "put": {
+        "security": [{ "bearerAuth": [] }],
         "tags": ["Users"],
         "summary": "Update user",
         "description": "Updates user details in PostgreSQL and synchronizes the Redis cache",
@@ -254,6 +258,7 @@
         }
       },
       "delete": {
+        "security": [{ "bearerAuth": [] }],
         "tags": ["Users"],
         "summary": "Delete user",
         "description": "Deletes user record from PostgreSQL and invalidates Redis cache entry",
@@ -289,6 +294,14 @@
     }
   },
   "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "JWT Bearer token obtained from auth-service"
+      }
+    },
     "schemas": {
       "User": {
         "type": "object",

@@ -14,7 +14,7 @@ export class UserService implements T.IUserService {
     private readonly user_repository: IUserRepository,
     private readonly cache_service: ICacheService,
     private readonly logger_service: ILogger = logger
-  ) { }
+  ) {}
 
   async create(params: T.CreateUserParams): Promise<ResultTuple<User>> {
     try {

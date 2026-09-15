@@ -1,0 +1,11 @@
+meta {
+  name: Gateway Health Check
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{gateway_url}}/health
+  body: none
+  auth: none
+}

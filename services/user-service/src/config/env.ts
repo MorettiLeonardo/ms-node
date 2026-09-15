@@ -15,7 +15,8 @@ const envSchema = z.object({
     .string()
     .default('300')
     .transform((val) => Number.parseInt(val, 10)),
-  CORS_ORIGIN: z.string().default('*')
+  CORS_ORIGIN: z.string().default('*'),
+  JWT_SECRET: z.string().default('dev_jwt_super_secret_key_change_in_production_12345')
 });
 
 const parsedEnv = envSchema.safeParse(process.env);

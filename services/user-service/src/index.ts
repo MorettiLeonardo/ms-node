@@ -3,7 +3,7 @@ import { env, prismaService, cacheService, redis } from '@src/config/index.js';
 import { UserRepository } from '@src/repositories/index.js';
 import { UserService } from '@src/services/index.js';
 import { UserController, HealthController } from '@src/controllers/index.js';
-import { UserMiddleware } from '@src/middlewares/index.js';
+import { UserMiddleware, AuthMiddleware } from '@src/middlewares/index.js';
 import { UserRouter, HealthRouter, DocsRouter } from '@src/routes/index.js';
 import { App } from '@src/app.js';
 import { logger } from '@src/utils/index.js';
@@ -19,10 +19,11 @@ export class Server {
       const user_repository = new UserRepository(prismaService.client);
       const user_service = new UserService(prismaService.client, user_repository, cacheService);
       const user_middleware = new UserMiddleware(user_repository);
+      const auth_middleware = new AuthMiddleware();
       const user_controller = new UserController(user_service);
       const health_controller = new HealthController(prismaService.client, redis);
 
-      const user_router = new UserRouter(user_controller, user_middleware);
+      const user_router = new UserRouter(user_controller, user_middleware, auth_middleware);
       const health_router = new HealthRouter(health_controller);
       const docs_router = new DocsRouter();
 

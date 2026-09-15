@@ -51,6 +51,7 @@ services:
       REDIS_URL: redis://redis:6379
       REDIS_CACHE_TTL_SECONDS: 300
       CORS_ORIGIN: '*'
+      JWT_SECRET: dev_jwt_super_secret_key_change_in_production_12345
     volumes:
       - ./services/user-service/src:/app/src
       - ./services/user-service/prisma:/app/prisma
@@ -87,6 +88,29 @@ services:
       mysql:
         condition: service_healthy
     command: sh -c "npx prisma db push && npm run dev"
+    networks:
+      - learns-network
+
+  gateway-service:
+    build:
+      context: ./services/gateway-service
+      dockerfile: Dockerfile
+      target: development
+    container_name: learns-gateway-service
+    restart: unless-stopped
+    ports:
+      - '8000:8000'
+    environment:
+      NODE_ENV: development
+      PORT: 8000
+      AUTH_SERVICE_URL: http://auth-service:3001
+      USER_SERVICE_URL: http://user-service:3000
+      CORS_ORIGIN: '*'
+    volumes:
+      - ./services/gateway-service/src:/app/src
+    depends_on:
+      - auth-service
+      - user-service
     networks:
       - learns-network
 

@@ -8,7 +8,7 @@ export class UserRepository implements T.IUserRepository {
   constructor(
     private readonly prisma: PrismaClient,
     private readonly logger_service: ILogger = logger
-  ) { }
+  ) {}
 
   async create(
     payload: T.CreateUserPayload,

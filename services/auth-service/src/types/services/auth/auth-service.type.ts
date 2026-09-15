@@ -79,3 +79,5 @@ export interface MessageResponse {
 export type AuthSessionResponse = SuccessResponse<AuthSession>;
 export type AuthTokensResponse = SuccessResponse<AuthTokens>;
 export type AccountProfileResponse = SuccessResponse<AccountProfile>;
+
+export type JwtSignFunction = (payload: { sub: string; email: string; role: string }) => string;

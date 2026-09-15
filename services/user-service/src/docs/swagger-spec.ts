@@ -54,6 +54,7 @@ export const SWAGGER_SPEC: Record<string, unknown> = {
     },
     '/api/v1/users': {
       post: {
+        security: [{ bearerAuth: [] }],
         tags: ['Users'],
         summary: 'Create user',
         description: 'Creates a new user record in PostgreSQL and warms the Redis cache',
@@ -101,6 +102,7 @@ export const SWAGGER_SPEC: Record<string, unknown> = {
         }
       },
       get: {
+        security: [{ bearerAuth: [] }],
         tags: ['Users'],
         summary: 'List users',
         description: 'Retrieves a paginated list of users',
@@ -145,6 +147,7 @@ export const SWAGGER_SPEC: Record<string, unknown> = {
     },
     '/api/v1/users/{id}': {
       get: {
+        security: [{ bearerAuth: [] }],
         tags: ['Users'],
         summary: 'Get user by ID',
         description: 'Cache-aside lookup. Returns from Redis cache if available, otherwise queries PostgreSQL',
@@ -185,6 +188,7 @@ export const SWAGGER_SPEC: Record<string, unknown> = {
         }
       },
       put: {
+        security: [{ bearerAuth: [] }],
         tags: ['Users'],
         summary: 'Update user',
         description: 'Updates user details in PostgreSQL and synchronizes the Redis cache',
@@ -255,6 +259,7 @@ export const SWAGGER_SPEC: Record<string, unknown> = {
         }
       },
       delete: {
+        security: [{ bearerAuth: [] }],
         tags: ['Users'],
         summary: 'Delete user',
         description: 'Deletes user record from PostgreSQL and invalidates Redis cache entry',
@@ -290,6 +295,14 @@ export const SWAGGER_SPEC: Record<string, unknown> = {
     }
   },
   components: {
+    securitySchemes: {
+      bearerAuth: {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        description: 'JWT Bearer token obtained from auth-service'
+      }
+    },
     schemas: {
       User: {
         type: 'object',

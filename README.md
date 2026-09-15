@@ -57,12 +57,14 @@ learns-ms/
 │   └── rules/                      # Architectural, Clean Code & Style rules
 ├── docs/                           # Bruno API Collections & OpenAPI specs per microservice
 │   ├── environments/               # Environment configs (local, production)
+│   ├── gateway-service/            # Gateway Service endpoints (.bru)
 │   ├── user-service/               # User Service endpoints (.bru, swagger.json, swagger.yaml)
 │   ├── auth-service/               # Auth Service endpoints (.bru, swagger.json, swagger.yaml)
 │   └── bruno.json                  # Bruno collection descriptor
-├── docker-compose.yml              # Multi-container orchestration (Postgres, Redis, MySQL, Services)
+├── docker-compose.yml              # Multi-container orchestration (Gateway, Postgres, Redis, MySQL, Services)
 ├── services/
-│   ├── user-service/               # User Microservice (Express + TypeScript + Postgres + Redis)
+│   ├── gateway-service/            # API Gateway (Fastify + Reverse Proxy + Request ID + Health Aggregation)
+│   ├── user-service/               # User Microservice (Express + TypeScript + Postgres + Redis + JWT Auth)
 │   │   ├── prisma/schema.prisma    # PostgreSQL Prisma schema
 │   │   ├── src/                    # Layers (schemas, middlewares, controllers, services, repositories)
 │   │   └── Dockerfile
@@ -78,7 +80,7 @@ learns-ms/
 
 ## 🚀 Quick Start (Docker Compose)
 
-Start the entire microservices ecosystem (PostgreSQL 16, Redis 7, MySQL 8, User Service, Auth Service):
+Start the entire microservices ecosystem (PostgreSQL 16, Redis 7, MySQL 8, User Service, Auth Service, API Gateway):
 
 ```bash
 docker compose up --build -d
@@ -91,8 +93,8 @@ docker compose ps
 
 Stream logs:
 ```bash
-# View logs from auth service
-docker compose logs -f auth-service
+# View logs from gateway service
+docker compose logs -f gateway-service
 
 # View logs from all services
 docker compose logs -f
@@ -107,23 +109,35 @@ docker compose down
 
 ## 📡 Microservices Overview
 
-### 1. User Microservice (`user-service`)
+### 1. API Gateway (`gateway-service`)
+- **Port**: `8000`
+- **Framework**: Fastify with `@fastify/http-proxy`
+- **Responsibilities**: Unified entry point, reverse proxy routing, request ID correlation (`x-request-id`), aggregated health checks
+
+| Operation | Method | Endpoint | Description |
+|---|---|---|---|
+| Aggregated Health | `GET` | `/health` | Verifies gateway uptime and downstream service healths |
+| Auth Proxy | `ANY` | `/api/v1/auth/*` | Proxies all auth requests to `auth-service:3001` (also `/auth/*`) |
+| Users Proxy | `ANY` | `/api/v1/users/*` | Proxies all user requests to `user-service:3000` (also `/users/*`) |
+
+### 2. User Microservice (`user-service`)
 - **Port**: `3000`
 - **Framework**: Express.js with TypeScript
 - **Database**: PostgreSQL 16 (via Prisma ORM)
 - **Cache**: Redis 7 (Cache-Aside pattern)
+- **Security**: Bearer JWT authentication on all user routes (shared `JWT_SECRET`)
 - **Swagger UI**: [http://localhost:3000/docs](http://localhost:3000/docs)
 
-| Operation | Method | Endpoint | Description |
-|---|---|---|---|
-| Health Check | `GET` | `/health` | PostgreSQL and Redis health verification |
-| Create User | `POST` | `/api/v1/users` | Creates user in DB and warms cache |
-| List Users | `GET` | `/api/v1/users` | Paginated users list (`?page=1&limit=10`) |
-| Get User | `GET` | `/api/v1/users/:id` | Cache-aside lookup |
-| Update User | `PUT` | `/api/v1/users/:id` | Transactional update with cache sync |
-| Delete User | `DELETE` | `/api/v1/users/:id` | Deletes user from DB and invalidates cache |
+| Operation | Method | Endpoint | Auth | Description |
+|---|---|---|---|---|
+| Health Check | `GET` | `/health` | None | PostgreSQL and Redis health verification |
+| Create User | `POST` | `/api/v1/users` | Bearer JWT | Creates user in DB and warms cache |
+| List Users | `GET` | `/api/v1/users` | Bearer JWT | Paginated users list (`?page=1&limit=10`) |
+| Get User | `GET` | `/api/v1/users/:id` | Bearer JWT | Cache-aside lookup |
+| Update User | `PUT` | `/api/v1/users/:id` | Bearer JWT | Transactional update with cache sync |
+| Delete User | `DELETE` | `/api/v1/users/:id` | Bearer JWT | Deletes user from DB and invalidates cache |
 
-### 2. Authentication Microservice (`auth-service`)
+### 3. Authentication Microservice (`auth-service`)
 - **Port**: `3001`
 - **Framework**: Fastify 5.x with TypeScript
 - **Database**: MySQL 8.0 (via Prisma ORM)

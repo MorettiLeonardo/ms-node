@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { UserSchema } from '@src/schemas/index.js';
-import type { UserMiddleware } from '@src/middlewares/index.js';
+import type { UserMiddleware, AuthMiddleware } from '@src/middlewares/index.js';
 import type { IUserController } from '@src/types/controllers/index.js';
 
 export class UserRouter {
@@ -8,13 +8,16 @@ export class UserRouter {
 
   constructor(
     private readonly controller: IUserController,
-    private readonly middleware: UserMiddleware
+    private readonly middleware: UserMiddleware,
+    private readonly auth_middleware: AuthMiddleware
   ) {
     this.router = Router();
     this.register_routes();
   }
 
   private register_routes(): void {
+    this.router.use(this.auth_middleware.authenticate);
+
     this.router.post('/', UserSchema.create, this.middleware.validate_unique_email, this.controller.create);
     this.router.get('/', UserSchema.findAll, this.controller.findAll);
     this.router.get('/:id', UserSchema.findOne, this.middleware.validate_user_exists, this.controller.findOne);

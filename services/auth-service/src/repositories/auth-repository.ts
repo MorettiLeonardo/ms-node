@@ -1,7 +1,7 @@
-import type { Prisma, PrismaClient, Account, RefreshToken } from '@prisma/client';
-import * as T from '@src/types/repositories/index.js';
-import type { ResultTuple, ILogger } from '@src/types/shared/index.js';
 import { logger } from '@src/utils/index.js';
+import type { Prisma, PrismaClient, Account, RefreshToken } from '@prisma/client';
+import type { ResultTuple, ILogger } from '@src/types/shared/index.js';
+import * as T from '@src/types/repositories/index.js';
 
 export class AuthRepository implements T.IAuthRepository {
   constructor(

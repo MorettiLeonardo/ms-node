@@ -10,13 +10,11 @@ import {
   ACCESS_TOKEN_EXPIRES_IN_SECONDS
 } from '@src/constants/index.js';
 
-export type JwtSignFunction = (payload: { sub: string; email: string; role: string }) => string;
-
 export class AuthService implements T.IAuthService {
   constructor(
     private readonly prisma: PrismaClient,
     private readonly auth_repository: R.IAuthRepository,
-    private readonly jwt_sign: JwtSignFunction,
+    private readonly jwt_sign: T.JwtSignFunction,
     private readonly logger_service: ILogger = logger
   ) {}
 

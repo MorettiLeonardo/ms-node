@@ -1,0 +1,31 @@
+{
+  "name": "@learns-ms/gateway-service",
+  "version": "1.0.0",
+  "description": "API Gateway microservice with Fastify, TypeScript, Oxlint, and Prettier",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc && tsc-alias",
+    "start": "node dist/index.js",
+    "lint": "oxlint src",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fastify/cors": "^10.0.2",
+    "@fastify/helmet": "^13.0.1",
+    "@fastify/http-proxy": "^10.0.1",
+    "dotenv": "^16.4.7",
+    "fastify": "^5.2.1",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.5",
+    "oxlint": "^0.15.11",
+    "prettier": "^3.5.2",
+    "tsc-alias": "^1.8.10",
+    "tsx": "^4.19.3",
+    "typescript": "^5.7.3"
+  }
+}
